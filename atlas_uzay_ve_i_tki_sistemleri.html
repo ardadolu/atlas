@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATLAS — Uzay & İtki Sistemleri | Makina Mühendisliği Vizyonu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Mechanical Rocket & Cutaway Simulation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Syne, Space Grotesk, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        atlasRed: '#E61919',
+                        atlasCrimson: '#FF1E1E',
+                        atlasBlack: '#0B0B0D',
+                        atlasDark: '#121318',
+                        atlasCream: '#F4F1EA',
+                        atlasSand: '#E5E0D5',
+                    },
+                    fontFamily: {
+                        display: ['Syne', 'sans-serif'],
+                        sans: ['Space Grotesk', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --atlas-red: #E61919;
+            --atlas-black: #0B0B0D;
+            --atlas-cream: #F4F1EA;
+        }
+
+        body {
+            background-color: var(--atlas-cream);
+            color: var(--atlas-black);
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+            selection-background-color: var(--atlas-red);
+            selection-color: white;
+        }
+
+        ::selection {
+            background: #E61919;
+            color: #F4F1EA;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0B0D;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #E61919;
+            border-radius: 4px;
+        }
+
+        /* Giant Hero Title Styling matching SLICK video */
+        .hero-mega-text {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(5.2rem, 23vw, 26rem);
+            line-height: 0.78;
+            letter-spacing: -0.05em;
+            user-select: none;
+        }
+
+        /* Giant Section Numbers (01, 02, 03, 04) */
+        .giant-number {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(8rem, 25vw, 24rem);
+            line-height: 0.8;
+            letter-spacing: -0.06em;
+            user-select: none;
+        }
+
+        /* Infinite Marquee Animation */
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: max-content;
+            animation: marquee 28s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+
+        /* Fixed 3D Rocket Canvas Overlay */
+        #rocket-canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 35;
+        }
+
+        /* Fixed Dynamic Ribbon SVG Overlay */
+        #ribbon-svg-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 25;
+        }
+
+        /* Technical Grid Background Pattern */
+        .tech-grid-light {
+            background-image: 
+                linear-gradient(to right, rgba(11, 11, 13, 0.06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(11, 11, 13, 0.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        .tech-grid-dark {
+            background-image: 
+                linear-gradient(to right, rgba(244, 241, 234, 0.06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(244, 241, 234, 0.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        .tech-grid-red {
+            background-image: 
+                linear-gradient(to right, rgba(11, 11, 13, 0.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(11, 11, 13, 0.12) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        /* Sticky Card Stacking Effect */
+        .sticky-card {
+            position: sticky;
+            top: 0;
+            min-height: 100vh;
+            box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Interactive Blueprint Pulse */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.85); opacity: 0.9; }
+            70% { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .hotspot-pulse::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 9999px;
+            border: 2px solid #FF1E1E;
+            animation: pulse-ring 2s infinite;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 3px;
+            background: #27272A;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #FF1E1E;
+            border: 2px solid #F4F1EA;
+            margin-top: -7px;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(255, 30, 30, 0.8);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-atlasRed selection:text-white">
+
+    <!-- ==========================================
+         1. FIXED SCROLL-DRIVEN TRAJECTORY RIBBON (SVG)
+         Matches the swirling red/black ribbon from the video
+    =========================================== -->
+    <div id="ribbon-svg-container">
+        <svg id="trajectory-svg" viewBox="0 0 1440 900" preserveAspectRatio="none" class="w-full h-full">
+            <defs>
+                <filter id="ribbon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+                </filter>
+            </defs>
+            <!-- Outer shadow/border path for depth -->
+            <path id="ribbon-path-shadow" d="" fill="none" stroke="#0B0B0D" stroke-width="58" stroke-linecap="round" stroke-linejoin="round" opacity="0.18" />
+            <!-- Main dynamic swirling trajectory ribbon -->
+            <path id="ribbon-path-main" d="" fill="none" stroke="#E61919" stroke-width="48" stroke-linecap="round" stroke-linejoin="round" filter="url(#ribbon-glow)" class="transition-colors duration-500" />
+            <!-- Technical centerline dashed telemetry trace -->
+            <path id="ribbon-path-center" d="" fill="none" stroke="#F4F1EA" stroke-width="2" stroke-dasharray="8 8" stroke-linecap="round" opacity="0.65" />
+        </svg>
+    </div>
+
+    <!-- ==========================================
+         2. FIXED 3D MECHANICAL ROCKET & PROPULSION CORE
+         Replaces the 3D mouse in the video with an interactive
+         multi-stage rocket that shifts into cutaway/CAD mode on scroll!
+    =========================================== -->
+    <div id="rocket-canvas-container">
+        <canvas id="rocket-3d-canvas" class="w-full h-full"></canvas>
+    </div>
+
+    <!-- ==========================================
+         3. FLOATING MECHANICAL INSPECTION HUD (Bottom-Center / Right)
+         Allows manual override of the 3D Rocket View + Live Scroll Telemetry
+    =========================================== -->
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 sm:gap-3 bg-atlasBlack/90 backdrop-blur-md border border-white/15 px-3 sm:px-4 py-2 rounded-full shadow-2xl text-atlasCream">
+        <div class="hidden md:flex items-center gap-2 pr-3 border-r border-white/15">
+            <span class="w-2 h-2 rounded-full bg-atlasCrimson animate-ping"></span>
+            <span id="hud-stage-label" class="font-mono text-[11px] uppercase tracking-wider text-white/80">MOD: DIŞ GÖVDE</span>
+        </div>
+
+        <div class="flex items-center gap-1" role="group" aria-label="Roket Görünüm Modu">
+            <button onclick="setRocketRenderMode('auto')" id="btn-mode-auto" class="px-2.5 py-1 rounded-full font-mono text-[11px] uppercase tracking-wider bg-atlasRed text-white font-bold transition-all">
+                Otonom (Scroll)
+            </button>
+            <button onclick="setRocketRenderMode('hull')" id="btn-mode-hull" class="px-2.5 py-1 rounded-full font-mono text-[11px] uppercase tracking-wider text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                Tam Gövde
+            </button>
+            <button onclick="setRocketRenderMode('cutaway')" id="btn-mode-cutaway" class="px-2.5 py-1 rounded-full font-mono text-[11px] uppercase tracking-wider text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                İç Mekanik (Kesit)
+            </button>
+            <button onclick="setRocketRenderMode('wireframe')" id="btn-mode-wireframe" class="px-2.5 py-1 rounded-full font-mono text-[11px] uppercase tracking-wider text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                CAD Tel Kafes
+            </button>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-2 pl-2 border-l border-white/15 font-mono text-[11px] text-atlasCrimson font-bold">
+            <span id="hud-scroll-telemetry">ALT: 000 KM</span>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         4. TOP NAVIGATION BAR
+    =========================================== -->
+    <header class="fixed top-0 left-0 right-0 z-50 px-4 sm:px-8 py-4 transition-all duration-300" id="main-navbar">
+        <div class="max-w-7xl mx-auto flex items-center justify-between bg-atlasBlack/85 backdrop-blur-md border border-white/10 rounded-full px-5 py-2.5 text-atlasCream shadow-xl">
+            <!-- Brand Logo -->
+            <a href="#hero" class="flex items-center gap-3 group">
+                <div class="w-8 h-8 rounded-full bg-atlasRed flex items-center justify-center font-display font-extrabold text-white text-sm tracking-tighter group-hover:rotate-90 transition-transform duration-300">
+                    ▲
+                </div>
+                <div>
+                    <span class="font-display font-extrabold text-lg tracking-tight block leading-none">ATLAS</span>
+                    <span class="font-mono text-[9px] tracking-widest text-white/60 block">AEROSPACE & PROPULSION</span>
+                </div>
+            </a>
+
+            <!-- Live Engineering Telemetry Pill -->
+            <div class="hidden lg:flex items-center gap-3 bg-white/5 border border-white/10 rounded-full px-3.5 py-1 font-mono text-[11px]">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span class="text-white/70">TELEMETRİ:</span>
+                <span id="nav-mission-clock" class="text-white font-bold">T+ 00:14:52.08</span>
+                <span class="text-white/30">|</span>
+                <span class="text-atlasCrimson font-semibold">CHAMBER: 31.4 MPa</span>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-6 text-xs font-mono uppercase tracking-wider text-white/80">
+                <a href="#cad-studio" class="hover:text-atlasCrimson transition-colors">CAD & Telemetri</a>
+                <a href="#engineering-stack" class="hover:text-atlasCrimson transition-colors">Mekanik Mimari</a>
+                <a href="#missions" class="hover:text-atlasCrimson transition-colors">Görevler</a>
+                <a href="#founder" class="hover:text-atlasCrimson transition-colors">Kurucu</a>
+            </nav>
+
+            <!-- CTA Button -->
+            <button onclick="openLaunchModal()" class="bg-atlasCream text-atlasBlack hover:bg-atlasRed hover:text-white font-mono text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full transition-all duration-300 flex items-center gap-2 shadow-md">
+                <span>Ateşleme Testi</span>
+                <span class="text-sm">↗</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         5. HERO SECTION (Vibrant Red - Direct SLICK Video Homage)
+    =========================================== -->
+    <section id="hero" data-ribbon-color="#0B0B0D" data-stage="hull" class="relative min-h-screen bg-atlasRed text-atlasBlack tech-grid-red flex flex-col justify-between pt-28 pb-16 px-4 sm:px-8 overflow-hidden">
+        
+        <!-- Top Technical Metadata Row -->
+        <div class="max-w-7xl w-full mx-auto flex flex-wrap justify-between items-center font-mono text-xs uppercase tracking-widest border-b border-atlasBlack/20 pb-3 relative z-20">
+            <div class="flex items-center gap-2 font-bold">
+                <span class="inline-block w-2.5 h-2.5 bg-atlasBlack rounded-full"></span>
+                <span>00 // YÖRÜNGE FIRLATMA VE İTKİ SİSTEMLERİ</span>
+            </div>
+            <div class="hidden sm:block font-bold">
+                BAŞ MAKİNA MÜHENDİSLİĞİ DİREKTÖRLÜĞÜ — İZMİR / LEO
+            </div>
+            <div class="font-bold bg-atlasBlack text-atlasCream px-2.5 py-0.5 rounded">
+                REV. 4.2 // METHALOX
+            </div>
+        </div>
+
+        <!-- Center Massive Typography ("ATLAS" instead of "SLICK") -->
+        <div class="my-auto py-8 sm:py-12 relative flex items-center justify-center">
+            <!-- Background giant text -->
+            <h1 class="hero-mega-text text-atlasBlack text-center tracking-tighter select-none relative z-10">
+                ATLAS
+            </h1>
+            
+            <!-- Subtle mechanical crosshair overlay behind the 3D rocket -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div class="w-64 h-64 sm:w-96 sm:h-96 rounded-full border border-atlasBlack/25 flex items-center justify-center">
+                    <div class="w-48 h-48 sm:w-72 sm:h-72 rounded-full border border-dashed border-atlasBlack/30"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Slogan Left + Action Buttons Right (Matches SLICK Video) -->
+        <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-end relative z-40 pt-6 border-t border-atlasBlack/20">
+            <div class="lg:col-span-7">
+                <div class="inline-flex items-center gap-2 bg-atlasBlack/10 border border-atlasBlack/20 px-3 py-1 rounded-full font-mono text-xs font-bold uppercase mb-3">
+                    <span>★ KURUCU MAKİNA MÜHENDİSİ VİZYONU</span>
+                </div>
+                <h2 class="text-3xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight text-atlasCream leading-[0.98]">
+                    Yörüngeyi fethetmek için tasarlandı.<br>
+                    <span class="italic font-serif font-normal text-atlasBlack">Kusursuz mekanikle</span> inşa edildi.
+                </h2>
+            </div>
+
+            <div class="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end xl:items-center justify-end gap-4">
+                <div class="text-sm font-medium text-atlasBlack/90 mb-2 sm:mb-0 xl:max-w-xs">
+                    Yeniden kullanılabilir kriyojenik roket motorları, otonom iniş mekanizmaları ve yeni nesil uydu takımları geliştiriyoruz.
+                </div>
+                <div class="flex flex-wrap items-center gap-3 shrink-0">
+                    <a href="#cad-studio" class="bg-atlasCream text-atlasBlack hover:bg-atlasBlack hover:text-atlasCream font-mono text-xs font-bold uppercase tracking-wider px-6 py-4 rounded-full transition-all duration-300 flex items-center gap-3 shadow-xl">
+                        <span>Mekanik Kesiti İncele</span>
+                        <span class="w-6 h-6 rounded-full bg-atlasRed text-white flex items-center justify-center text-xs">→</span>
+                    </a>
+                    <a href="#missions" class="border-2 border-atlasBlack text-atlasBlack hover:bg-atlasBlack hover:text-atlasCream font-mono text-xs font-bold uppercase tracking-wider px-5 py-3.5 rounded-full transition-all duration-300">
+                        Görevler ↓
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Technical Strip -->
+        <div class="max-w-7xl w-full mx-auto pt-4 flex justify-between items-center font-mono text-[11px] uppercase tracking-widest text-atlasBlack/80 relative z-20">
+            <span>İTKİ // TERMODİNAMİK // YÖRÜNGE KİNEMATİĞİ</span>
+            <span class="animate-bounce">KAYDIRARAK ROKETİ AYRIŞTIR ↓</span>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         6. INFINITE SCROLLING MARQUEE BANNER (Black Strip from Video)
+    =========================================== -->
+    <div class="bg-atlasBlack text-atlasCream py-6 sm:py-8 border-y-2 border-atlasBlack relative z-40 overflow-hidden">
+        <div class="animate-marquee flex items-center gap-8 sm:gap-12">
+            <!-- Group 1 -->
+            <div class="flex items-center gap-8 sm:gap-12 text-3xl sm:text-5xl font-display font-extrabold tracking-tight uppercase">
+                <span>Kapalı Çevrim Turbo Pompa</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>Kriyojenik Methalox İtki</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>Dikey Otonom İniş</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>LEO Takım Uydular</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>Vektörel Gimbal Kinematiği</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+            </div>
+            <!-- Group 2 (Duplicate for seamless loop) -->
+            <div class="flex items-center gap-8 sm:gap-12 text-3xl sm:text-5xl font-display font-extrabold tracking-tight uppercase">
+                <span>Kapalı Çevrim Turbo Pompa</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>Kriyojenik Methalox İtki</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>Dikey Otonom İniş</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>LEO Takım Uydular</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+                <span>Vektörel Gimbal Kinematiği</span>
+                <span class="text-atlasCrimson text-2xl sm:text-4xl">✱</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         7. INTERACTIVE CAD & TELEMETRY STUDIO SECTION
+         Matches "Most sites get looked at. Ours get played with." in the video!
+    =========================================== -->
+    <section id="cad-studio" data-ribbon-color="#E61919" data-stage="cutaway" class="relative min-h-screen bg-atlasCream text-atlasBlack tech-grid-light py-24 sm:py-32 px-4 sm:px-8 flex items-center">
+        <div class="max-w-7xl mx-auto w-full relative z-40">
+            
+            <!-- Section Header Bar -->
+            <div class="flex justify-between items-center font-mono text-xs uppercase tracking-widest text-atlasBlack/60 border-b border-atlasBlack/15 pb-3 mb-12">
+                <span>01 // CANLI MAKİNA MÜHENDİSLİĞİ & TELEMETRİ LABORATUVARI</span>
+                <span class="text-atlasRed font-bold">● INTERAKTİF CAD KESİT MODU AKTİF</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <!-- Left Column: Bold Statement + Mechanical Controls -->
+                <div class="lg:col-span-5 space-y-6 bg-atlasCream/85 backdrop-blur-sm p-6 rounded-3xl border border-atlasBlack/10 shadow-lg">
+                    <div class="inline-flex items-center gap-2 bg-atlasRed text-white font-mono text-[11px] font-bold uppercase px-3 py-1 rounded-full">
+                        <span>KURUCU MÜHENDİS NOTU</span>
+                    </div>
+
+                    <h2 class="text-4xl sm:text-6xl font-display font-extrabold tracking-tight leading-[0.95]">
+                        Çoğu roket sadece uçar.<br>
+                        Bizimkiler <span class="text-atlasRed italic font-serif">mekanik sanat</span> sergiler.
+                    </h2>
+
+                    <p class="text-atlasBlack/75 text-base sm:text-lg leading-relaxed">
+                        Bir makina mühendisi gözüyle roket; sadece dış kabuktan ibaret değildir. Yüksek basınçlı <strong>Inconel 718 türbin kanatçıkları</strong>, sıvı metan rejeneratif soğutma kanalları ve milimetrik <strong>hidrolik gimbal aktüatörlerin</strong> senfonisidir.
+                    </p>
+
+                    <!-- Interactive 3D Stage & Cutaway Trigger Buttons -->
+                    <div class="pt-2 space-y-3">
+                        <div class="font-mono text-xs uppercase tracking-wider text-atlasBlack/60 font-bold">
+                            ORTADAKİ 3D ROKETİ VEYA ALT SİSTEMİ İNCELE:
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <button onclick="selectSubsystem(0)" id="sub-btn-0" class="subsystem-btn text-left p-3 rounded-2xl border-2 border-atlasRed bg-atlasBlack text-atlasCream transition-all">
+                                <span class="font-mono text-[10px] text-atlasCrimson block">ALT SİSTEM 01</span>
+                                <span class="font-bold text-sm block mt-0.5">Turbo Pompa</span>
+                            </button>
+                            <button onclick="selectSubsystem(1)" id="sub-btn-1" class="subsystem-btn text-left p-3 rounded-2xl border-2 border-atlasBlack/15 bg-white hover:border-atlasRed transition-all">
+                                <span class="font-mono text-[10px] text-atlasBlack/50 block">ALT SİSTEM 02</span>
+                                <span class="font-bold text-sm block mt-0.5">Gimbal Vektör</span>
+                            </button>
+                            <button onclick="selectSubsystem(2)" id="sub-btn-2" class="subsystem-btn text-left p-3 rounded-2xl border-2 border-atlasBlack/15 bg-white hover:border-atlasRed transition-all">
+                                <span class="font-mono text-[10px] text-atlasBlack/50 block">ALT SİSTEM 03</span>
+                                <span class="font-bold text-sm block mt-0.5">Kriyojenik Tank</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Exploded View Slider -->
+                    <div class="bg-atlasSand/70 p-4 rounded-2xl border border-atlasBlack/10">
+                        <div class="flex justify-between items-center font-mono text-xs mb-2">
+                            <span class="font-bold uppercase">3D ROKET KADEME AYRIŞTIRMA (EXPLODED VIEW):</span>
+                            <span id="explode-val-label" class="text-atlasRed font-bold">45% AÇIK</span>
+                        </div>
+                        <input type="range" id="explode-slider" min="0" max="100" value="45" class="w-full" oninput="updateManualExplode(this.value)">
+                    </div>
+                </div>
+
+                <!-- Right Column: Spacer for Center 3D Rocket + Interactive CAD Telemetry Window (Like the UI panel in SLICK video) -->
+                <div class="lg:col-span-7 lg:pl-16">
+                    <div class="bg-atlasBlack text-atlasCream rounded-3xl border border-white/15 shadow-2xl overflow-hidden">
+                        <!-- Window Top Bar -->
+                        <div class="bg-white/5 px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-atlasCrimson"></span>
+                                <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                                <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+                                <span class="ml-2 font-mono text-xs text-white/70">ATLAS_CAD_SOLVER_v4.2.exe — [KESİT ANALİZİ]</span>
+                            </div>
+                            <span class="font-mono text-[11px] bg-atlasRed/20 text-atlasCrimson border border-atlasRed/40 px-2.5 py-0.5 rounded-full">
+                                FEA / CFD CANLI
+                            </span>
+                        </div>
+
+                        <!-- Interactive Blueprint & Telemetry Content -->
+                        <div class="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                            
+                            <!-- Left: Dynamic SVG Mechanical Cutaway Schematic -->
+                            <div class="md:col-span-7 bg-atlasDark rounded-2xl p-4 border border-white/10 relative min-h-[280px] flex flex-col justify-between">
+                                <div class="flex justify-between items-start font-mono text-[10px] text-white/50">
+                                    <span id="cad-drawing-id">ÇİZİM NO: ATL-ENG-001</span>
+                                    <span>ÖLÇEK: 1:12 // TOLERANS: ±0.005mm</span>
+                                </div>
+
+                                <!-- Interactive SVG Cutaway Diagram -->
+                                <div class="my-4 flex items-center justify-center">
+                                    <svg id="subsystem-svg" viewBox="0 0 360 220" class="w-full h-48">
+                                        <!-- Technical Grid Lines -->
+                                        <line x1="0" y1="110" x2="360" y2="110" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 4"/>
+                                        <line x1="180" y1="0" x2="180" y2="220" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 4"/>
+
+                                        <!-- Dynamic Group updated via JS -->
+                                        <g id="svg-mechanical-group">
+                                            <!-- Outer Nozzle & Chamber Bell -->
+                                            <path d="M90,40 L140,40 L155,85 L235,145 L235,175 L155,135 L140,180 L90,180 Z" fill="none" stroke="#F4F1EA" stroke-width="2.5"/>
+                                            <!-- Regenerative Cooling Channels -->
+                                            <path d="M98,48 L135,48 L150,90 L225,148" fill="none" stroke="#FF1E1E" stroke-width="3" stroke-dasharray="6 4">
+                                                <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite"/>
+                                            </path>
+                                            <path d="M98,172 L135,172 L150,130 L225,168" fill="none" stroke="#FF1E1E" stroke-width="3" stroke-dasharray="6 4">
+                                                <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite"/>
+                                            </path>
+                                            <!-- Turbine Rotor -->
+                                            <g transform="translate(115, 110)">
+                                                <circle id="svg-turbine-wheel" r="26" fill="rgba(230,25,25,0.15)" stroke="#FF1E1E" stroke-width="2"/>
+                                                <line x1="-24" y1="0" x2="24" y2="0" stroke="#F4F1EA" stroke-width="2"/>
+                                                <line x1="0" y1="-24" x2="0" y2="24" stroke="#F4F1EA" stroke-width="2"/>
+                                                <line x1="-17" y1="-17" x2="17" y2="17" stroke="#F4F1EA" stroke-width="2"/>
+                                                <line x1="-17" y1="17" x2="17" y2="-17" stroke="#F4F1EA" stroke-width="2"/>
+                                                <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0" to="360" dur="2s" repeatCount="indefinite" additive="sum"/>
+                                            </g>
+                                            <!-- Exhaust Plume Vector -->
+                                            <polygon id="svg-plume" points="235,148 335,125 310,160 345,175 235,172" fill="rgba(255,30,30,0.45)" stroke="#FF1E1E" stroke-width="1.5"/>
+                                        </g>
+
+                                        <!-- Dimension Callouts -->
+                                        <text x="12" y="25" fill="#FF1E1E" font-family="JetBrains Mono" font-size="10" font-weight="bold">INCONEL-718 MONOBLOK</text>
+                                        <text x="215" y="45" fill="#F4F1EA" font-family="JetBrains Mono" font-size="10">AKIŞ HIZI: MACH 4.8</text>
+                                    </svg>
+                                </div>
+
+                                <div class="flex justify-between items-center text-[11px] font-mono border-t border-white/10 pt-2">
+                                    <span id="cad-subsystem-title" class="text-white font-bold">KAPALI ÇEVRİM METHALOX TURBO POMPA</span>
+                                    <span class="text-emerald-400">VERİM: %99.2</span>
+                                </div>
+                            </div>
+
+                            <!-- Right: Live Mechanical Telemetry Controls -->
+                            <div class="md:col-span-5 space-y-4">
+                                <div>
+                                    <div class="flex justify-between font-mono text-xs mb-1">
+                                        <span class="text-white/70">YANMA ODASI BASINCI:</span>
+                                        <span id="val-pressure" class="text-atlasCrimson font-bold">32.5 MPa</span>
+                                    </div>
+                                    <input type="range" min="15" max="40" step="0.5" value="32.5" class="w-full" oninput="updateEngineTelemetry(this.value)">
+                                </div>
+
+                                <!-- Real-Time Computed Engineering Readouts -->
+                                <div class="grid grid-cols-2 gap-2.5 font-mono">
+                                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                                        <span class="text-[10px] text-white/50 block">TÜRBİN DEVRİ</span>
+                                        <span id="val-rpm" class="text-base font-bold text-white">38,400 RPM</span>
+                                    </div>
+                                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                                        <span class="text-[10px] text-white/50 block">İTKİ KUVVETİ</span>
+                                        <span id="val-thrust" class="text-base font-bold text-emerald-400">2,450 kN</span>
+                                    </div>
+                                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                                        <span class="text-[10px] text-white/50 block">ÖZGÜL İTKİ (Isp)</span>
+                                        <span id="val-isp" class="text-base font-bold text-white">382 sn</span>
+                                    </div>
+                                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                                        <span class="text-[10px] text-white/50 block">NOZÜLBOĞAZ ISI</span>
+                                        <span id="val-temp" class="text-base font-bold text-amber-400">3,420 K</span>
+                                    </div>
+                                </div>
+
+                                <p id="cad-subsystem-desc" class="text-xs text-white/70 leading-relaxed font-sans">
+                                    Sıvı metan (CH4) ve sıvı oksijen (LOX) ön-yakıcıdan geçerek kayıpsız kapalı çevrim itki üretir.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         8. 01 - 04 FULL-SCREEN STICKY ENGINEERING CARDS
+         Directly modeled after 01 Design, 02 Development, 03 Mobile, 04 Launch in the video!
+    =========================================== -->
+    <div id="engineering-stack" class="relative">
+
+        <!-- CARD 01: TAHRİK & MOTOR MEKANİĞİ (Cream Background + Giant Red 01) -->
+        <section data-ribbon-color="#E61919" data-stage="cutaway" class="sticky-card bg-atlasCream text-atlasBlack tech-grid-light flex flex-col justify-between p-6 sm:p-12 border-t-2 border-atlasBlack/15">
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs uppercase tracking-widest relative z-40">
+                <span>01 / 04 — İTKİ DİNAMİĞİ</span>
+                <span>FIG. 01 // KAPALI ÇEVRİM MOTOR MİMARİSİ</span>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto py-10 relative z-40">
+                <div class="lg:col-span-5 space-y-5 bg-atlasCream/90 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-atlasBlack/10 shadow-xl">
+                    <h3 class="text-5xl sm:text-7xl font-display font-extrabold tracking-tight">
+                        İtki & Motor
+                    </h3>
+                    <p class="text-atlasBlack/80 text-base sm:text-lg leading-relaxed">
+                        3D eklemeli imalatla (DMLS) tek parça üretilen <strong>Inconel-718 yanma odası</strong> ve koaksiyel girdaplı (swirl) enjektör plakası. Yanma kararsızlıklarını sıfıra indiren akustik sönümleme kavitesi ve 38.000 devir/dakika kriyojenik turbo pompa.
+                    </p>
+                    <div class="flex flex-wrap gap-2 pt-2 font-mono text-[11px] uppercase">
+                        <span class="px-3 py-1 rounded-full bg-atlasBlack text-atlasCream">METHALOX (CH4/LOX)</span>
+                        <span class="px-3 py-1 rounded-full border border-atlasBlack/30">REJENERATİF SOĞUTMA</span>
+                        <span class="px-3 py-1 rounded-full border border-atlasBlack/30">±15° TVC GİMBAL</span>
+                    </div>
+                </div>
+
+                <!-- Right Side Giant 01 + Mechanical Component Card -->
+                <div class="lg:col-span-7 flex flex-col sm:flex-row items-center justify-end relative">
+                    <div class="giant-number text-atlasRed select-none">01</div>
+                    <div class="sm:absolute sm:right-8 sm:bottom-4 bg-atlasBlack text-atlasCream p-5 rounded-2xl border border-white/15 shadow-2xl max-w-xs">
+                        <div class="flex items-center justify-between font-mono text-[10px] text-atlasCrimson mb-2">
+                            <span>CAD PARÇA: AT-9 MOTORU</span>
+                            <span>● AKTİF</span>
+                        </div>
+                        <div class="text-sm font-bold mb-1">9x Küme Motor Dizilimi</div>
+                        <p class="text-xs text-white/70">Merkez motor iniş manevraları için %35'e kadar kısılabilir (deep-throttling) valf mekanizmasına sahiptir.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs text-atlasBlack/60 border-t border-atlasBlack/15 pt-4 relative z-40">
+                <span>★ 01 İtki Mekaniği → 02 Gövde → 03 Uydu → 04 İniş</span>
+                <span>SONRAKİ KADEME ↓</span>
+            </div>
+        </section>
+
+        <!-- CARD 02: GÖVDE & TERMAL DİNAMİK (Vibrant Red Background + Black Ribbon + Giant 02) -->
+        <section data-ribbon-color="#0B0B0D" data-stage="wireframe" class="sticky-card bg-atlasRed text-atlasBlack tech-grid-red flex flex-col justify-between p-6 sm:p-12 border-t-2 border-atlasBlack">
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs uppercase tracking-widest font-bold relative z-40">
+                <span>02 / 04 — YAPISAL MEKANİK & MALZEME</span>
+                <span>FIG. 02 // KRİYOJENİK GÖVDE & GRID FIN</span>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto py-10 relative z-40">
+                <div class="lg:col-span-5 space-y-5 bg-atlasBlack text-atlasCream p-6 sm:p-8 rounded-3xl border border-white/15 shadow-2xl">
+                    <h3 class="text-5xl sm:text-7xl font-display font-extrabold tracking-tight text-atlasCream">
+                        Yapısal Gövde
+                    </h3>
+                    <p class="text-atlasCream/80 text-base sm:text-lg leading-relaxed">
+                        Aşırı termal şoklara (-183°C kriyojenik yakıttan +1650°C atmosferik girişe) dayanıklı <strong>304L soğuk haddelenmiş paslanmaz çelik</strong> izogrid (isogrid) kabuk ve hipersonik yönlendirme sağlayan dövme titanyum ızgara kanatçıklar.
+                    </p>
+                    <div class="flex flex-wrap gap-2 pt-2 font-mono text-[11px] uppercase">
+                        <span class="px-3 py-1 rounded-full bg-atlasRed text-white font-bold">İZOGRAFİK KABURGA</span>
+                        <span class="px-3 py-1 rounded-full border border-white/25">TİTANYUM GRID-FIN</span>
+                        <span class="px-3 py-1 rounded-full border border-white/25">HEKZAGONAL ISI KALKANI</span>
+                    </div>
+                </div>
+
+                <!-- Right Side Giant 02 -->
+                <div class="lg:col-span-7 flex flex-col sm:flex-row items-center justify-end relative">
+                    <div class="giant-number text-atlasCream select-none drop-shadow-xl">02</div>
+                    <div class="sm:absolute sm:right-6 sm:bottom-4 bg-atlasCream text-atlasBlack p-5 rounded-2xl border-2 border-atlasBlack shadow-2xl max-w-xs">
+                        <div class="font-mono text-[10px] font-bold text-atlasRed uppercase mb-1">SONLU ELEMANLAR ANALİZİ (FEA)</div>
+                        <div class="text-sm font-extrabold mb-1">Max-Q Aerodinamik Yük: 38 kPa</div>
+                        <p class="text-xs text-atlasBlack/80">İç basınçlandırma ile desteklenen ortogrid yakıt tankı duvar kalınlığı sadece 4.0 mm'dir.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs font-bold text-atlasBlack border-t border-atlasBlack/25 pt-4 relative z-40">
+                <span>01 İtki → ★ 02 Yapısal Gövde → 03 Uydu → 04 İniş</span>
+                <span>TEL KAFES (CAD) GÖRÜNÜMÜ AKTİF</span>
+            </div>
+        </section>
+
+        <!-- CARD 03: UYDU & YÖRÜNGE MEKANİĞİ (Deep Carbon Black Background + Giant Red 03) -->
+        <section data-ribbon-color="#E61919" data-stage="payload" class="sticky-card bg-atlasBlack text-atlasCream tech-grid-dark flex flex-col justify-between p-6 sm:p-12 border-t border-white/15">
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs uppercase tracking-widest text-white/60 relative z-40">
+                <span>03 / 04 — YÖRÜNGE & UYDU MEKANİZMASI</span>
+                <span>FIG. 03 // KALKAN-SAT KONUŞLANDIRMA</span>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto py-10 relative z-40">
+                <div class="lg:col-span-5 space-y-5 bg-white/5 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-white/15 shadow-2xl">
+                    <h3 class="text-5xl sm:text-7xl font-display font-extrabold tracking-tight text-white">
+                        Uydu Sistemleri
+                    </h3>
+                    <p class="text-white/75 text-base sm:text-lg leading-relaxed">
+                        Patlayıcı cıvata kullanmayan, sıfır enkazlı <strong>pnömatik-mekanik uydu ayırma halkaları</strong>. Tek fırlatmada 36 adet düz-paket (flat-pack) mikro uyduyu 550 km Düşük Dünya Yörüngesine (LEO) bırakan burun konisi (fairing) kinematiği.
+                    </p>
+                    <div class="flex flex-wrap gap-2 pt-2 font-mono text-[11px] uppercase">
+                        <span class="px-3 py-1 rounded-full bg-atlasRed text-white font-bold">HALL-EFFECT İYON İTKİ</span>
+                        <span class="px-3 py-1 rounded-full border border-white/20">KATLANIR GÜNEŞ PANELİ</span>
+                        <span class="px-3 py-1 rounded-full border border-white/20">LAZER HABERLEŞME</span>
+                    </div>
+                </div>
+
+                <!-- Right Side Giant 03 -->
+                <div class="lg:col-span-7 flex flex-col sm:flex-row items-center justify-end relative">
+                    <div class="giant-number text-atlasRed select-none">03</div>
+                    <div class="sm:absolute sm:right-6 sm:bottom-4 bg-atlasDark text-atlasCream p-5 rounded-2xl border border-atlasRed/50 shadow-2xl max-w-xs">
+                        <div class="font-mono text-[10px] text-atlasCrimson uppercase mb-1">BURUN KONİSİ AÇILIMI</div>
+                        <div class="text-sm font-bold mb-1">Karbon-Petek Sandviç Kabuk</div>
+                        <p class="text-xs text-white/70">Paraşütlü yönlendirme ve otonom deniz kurtarma gemileriyle burun konisi %100 yeniden kullanılır.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs text-white/50 border-t border-white/15 pt-4 relative z-40">
+                <span>01 İtki → 02 Gövde → ★ 03 Uydu Mekaniği → 04 İniş</span>
+                <span>BURUN KONİSİ & UYDU MODÜLÜ AÇIK</span>
+            </div>
+        </section>
+
+        <!-- CARD 04: DİKEY İNİŞ & GERİ KAZANIM (Cream Background + Giant Red 04) -->
+        <section data-ribbon-color="#E61919" data-stage="landing" class="sticky-card bg-atlasCream text-atlasBlack tech-grid-light flex flex-col justify-between p-6 sm:p-12 border-t-2 border-atlasBlack">
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs uppercase tracking-widest text-atlasBlack/70 relative z-40">
+                <span>04 / 04 — GERİ KAZANIM & OTONOM İNİŞ</span>
+                <span>FIG. 04 // HİDROLİK İNİŞ AYAKLARI & YAKALAMA</span>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto py-10 relative z-40">
+                <div class="lg:col-span-5 space-y-5 bg-white p-6 sm:p-8 rounded-3xl border-2 border-atlasBlack shadow-2xl">
+                    <h3 class="text-5xl sm:text-7xl font-display font-extrabold tracking-tight">
+                        Dikey İniş
+                    </h3>
+                    <p class="text-atlasBlack/80 text-base sm:text-lg leading-relaxed">
+                        Yüksek basınçlı helyum-pnömatik tahrikle 2.4 saniyede açılan <strong>karbon-fiber teleskopik iniş ayakları</strong> ve darbeyi sönümleyen ezilebilir alüminyum petek (crush-core) amortisörler. Fırlatma maliyetini 10 kat düşüren tam yeniden kullanılabilirlik.
+                    </p>
+                    <div class="flex flex-wrap gap-2 pt-2 font-mono text-[11px] uppercase">
+                        <span class="px-3 py-1 rounded-full bg-atlasRed text-white font-bold">PROPULSIVE LANDING</span>
+                        <span class="px-3 py-1 rounded-full border border-atlasBlack/30">CRUSH-CORE SÖNÜMLEME</span>
+                        <span class="px-3 py-1 rounded-full border border-atlasBlack/30">24 SAATTE YENİDEN UÇUŞ</span>
+                    </div>
+                </div>
+
+                <!-- Right Side Giant 04 -->
+                <div class="lg:col-span-7 flex flex-col sm:flex-row items-center justify-end relative">
+                    <div class="giant-number text-atlasRed select-none">04</div>
+                    <div class="sm:absolute sm:right-6 sm:bottom-4 bg-atlasBlack text-atlasCream p-5 rounded-2xl border border-atlasBlack shadow-2xl max-w-xs">
+                        <div class="font-mono text-[10px] text-emerald-400 uppercase mb-1">İNİŞ HASSASİYETİ</div>
+                        <div class="text-sm font-bold mb-1">±0.4 Metre Hedef Sapması</div>
+                        <p class="text-xs text-white/70">Dışbükey optimizasyon (Convex Optimization) algoritmaları ile rüzgar kesmelerine gerçek zamanlı mekanik tepki.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-7xl w-full mx-auto flex justify-between items-center font-mono text-xs text-atlasBlack/70 border-t border-atlasBlack/15 pt-4 relative z-40">
+                <span>İLK ÇİZİMDEN YÖRÜNGEYE VE DİKEY İNİŞE: TAM DÖNGÜ MÜHENDİSLİK</span>
+                <span>GÖREV VİTRİNİNE GEÇ ↓</span>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ==========================================
+         9. SELECTED MISSIONS & PORTFOLIO SHOWCASE
+         Matches "Selected Work" (Orchard Ceramics / Tidal) in the SLICK video!
+    =========================================== -->
+    <section id="missions" data-ribbon-color="#E61919" data-stage="hull" class="relative bg-atlasCream text-atlasBlack tech-grid-light py-28 sm:py-36 px-4 sm:px-8 border-t-2 border-atlasBlack">
+        <div class="max-w-7xl mx-auto relative z-40">
+            
+            <!-- Top Metadata -->
+            <div class="flex flex-wrap justify-between items-center font-mono text-xs uppercase tracking-widest text-atlasBlack/60 border-b border-atlasBlack/15 pb-3 mb-10">
+                <span>05 // SEÇİLMİŞ UZAY GÖREVLERİ & AR-GE PROGRAMLARI</span>
+                <span>04 AKTİF PROGRAM // 2026 — 2030 YOL HARİTASI</span>
+            </div>
+
+            <!-- Title & Filter Tabs -->
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between mb-14 gap-6">
+                <div>
+                    <h2 class="text-6xl sm:text-8xl font-display font-extrabold tracking-tight leading-[0.9]">
+                        Seçilmiş<br>görevler
+                    </h2>
+                </div>
+                <p class="max-w-md text-atlasBlack/75 text-base sm:text-lg">
+                    Alçak Dünya Yörüngesi (LEO) uydu ağlarından ağır yük gezegenlerarası taşıyıcılara kadar masamızdaki mühendislik projeleri.
+                </p>
+            </div>
+
+            <!-- Interactive Mission Selector + Showcase Grid (Modeled on the video's Selected Work layout) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+                
+                <!-- Left Column: Mission Directory List -->
+                <div class="lg:col-span-5 bg-atlasCream/90 backdrop-blur-md rounded-3xl border border-atlasBlack/15 p-4 sm:p-6 shadow-xl">
+                    <div class="font-mono text-xs uppercase tracking-wider text-atlasBlack/50 mb-4 px-2">
+                        GÖREV MANİFESTOSU (DETAY İÇİN TIKLA)
+                    </div>
+                    <div class="divide-y divide-atlasBlack/10" id="mission-list">
+                        <!-- Mission Item 0 -->
+                        <button onclick="selectMission(0)" class="mission-item w-full py-4 px-3 flex items-center justify-between text-left group rounded-xl bg-atlasBlack text-atlasCream transition-all">
+                            <div>
+                                <span class="font-mono text-[10px] text-atlasCrimson block">GÖREV 01 // LEO TEST</span>
+                                <span class="font-display font-bold text-lg">ATLAS-I Yörünge Roketi</span>
+                            </div>
+                            <span class="font-mono text-xs px-2.5 py-1 rounded-full bg-atlasRed text-white">2026</span>
+                        </button>
+
+                        <!-- Mission Item 1 -->
+                        <button onclick="selectMission(1)" class="mission-item w-full py-4 px-3 flex items-center justify-between text-left group rounded-xl hover:bg-atlasBlack/5 transition-all">
+                            <div>
+                                <span class="font-mono text-[10px] text-atlasBlack/50 block">GÖREV 02 // TAKIM UYDU</span>
+                                <span class="font-display font-bold text-lg">KALKAN-SAT Küresel Ağ</span>
+                            </div>
+                            <span class="font-mono text-xs text-atlasBlack/60">2027</span>
+                        </button>
+
+                        <!-- Mission Item 2 -->
+                        <button onclick="selectMission(2)" class="mission-item w-full py-4 px-3 flex items-center justify-between text-left group rounded-xl hover:bg-atlasBlack/5 transition-all">
+                            <div>
+                                <span class="font-mono text-[10px] text-atlasBlack/50 block">GÖREV 03 // AĞIR YÜK</span>
+                                <span class="font-display font-bold text-lg">DEMİRÖKÇE Süper Ağır</span>
+                            </div>
+                            <span class="font-mono text-xs text-atlasBlack/60">2028</span>
+                        </button>
+
+                        <!-- Mission Item 3 -->
+                        <button onclick="selectMission(3)" class="mission-item w-full py-4 px-3 flex items-center justify-between text-left group rounded-xl hover:bg-atlasBlack/5 transition-all">
+                            <div>
+                                <span class="font-mono text-[10px] text-atlasBlack/50 block">GÖREV 04 // DERİN UZAY</span>
+                                <span class="font-display font-bold text-lg">SELENE Ay Lojistik Modülü</span>
+                            </div>
+                            <span class="font-mono text-xs text-atlasBlack/60">2029</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Featured Mission Poster Card (Like Orchard Ceramics / Tidal cards in video) -->
+                <div class="lg:col-span-7">
+                    <div id="mission-showcase-card" class="bg-atlasRed text-atlasCream rounded-3xl p-6 sm:p-10 border-2 border-atlasBlack shadow-2xl transition-all duration-500 relative overflow-hidden">
+                        
+                        <div class="flex flex-wrap justify-between items-center gap-2 font-mono text-xs uppercase border-b border-white/25 pb-4 mb-6">
+                            <span id="mission-badge" class="bg-atlasBlack text-atlasCream px-3 py-1 rounded-full font-bold">GÖREV KODU: ATL-01</span>
+                            <span id="mission-orbit" class="text-white/90 font-bold">HEDEF: 550 KM GÜNEŞ EŞZAMANLI YÖRÜNGE (SSO)</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                            <!-- Poster Graphic -->
+                            <div class="md:col-span-6 bg-atlasBlack rounded-2xl p-6 border border-white/15 flex flex-col justify-between min-h-[280px]">
+                                <div class="font-mono text-[10px] text-atlasCrimson flex justify-between">
+                                    <span>ATLAS TELEMETRY</span>
+                                    <span id="mission-status">DURUM: ENTEGRASYON</span>
+                                </div>
+
+                                <!-- Dynamic SVG Mission Emblem -->
+                                <div class="my-6 flex items-center justify-center" id="mission-svg-holder">
+                                    <svg viewBox="0 0 200 200" class="w-40 h-40">
+                                        <circle cx="100" cy="100" r="75" fill="none" stroke="#E61919" stroke-width="2" stroke-dasharray="6 4"/>
+                                        <circle cx="100" cy="100" r="45" fill="rgba(230,25,25,0.2)" stroke="#F4F1EA" stroke-width="2"/>
+                                        <path d="M100,25 L118,95 L100,82 L82,95 Z" fill="#F4F1EA"/>
+                                        <circle cx="100" cy="100" r="6" fill="#FF1E1E"/>
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <div id="mission-poster-title" class="font-display font-extrabold text-2xl text-white tracking-tight">
+                                        ATLAS-I
+                                    </div>
+                                    <div id="mission-poster-sub" class="font-mono text-[11px] text-white/60">
+                                        İKİ KADEMELİ YENİDEN KULLANILABİLİR ROKET
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Technical Specs & Description -->
+                            <div class="md:col-span-6 space-y-5">
+                                <h3 id="mission-main-heading" class="text-3xl sm:text-4xl font-display font-extrabold tracking-tight leading-none">
+                                    ATLAS-I Yörünge Test Aracı
+                                </h3>
+                                <p id="mission-desc" class="text-white/90 text-sm sm:text-base leading-relaxed">
+                                    Tamamen makina mühendisliği ilkeleriyle sıfırdan tasarlanan 42 metre boyundaki iki kademeli fırlatma aracımız. İlk kademede 9 adet AT-9 Methalox motoru ile kalkışta 2.2 Meganewton itki üretir ve otonom mavnaya dikey iniş yapar.
+                                </p>
+
+                                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-white/25 font-mono">
+                                    <div>
+                                        <span class="text-[10px] text-white/70 block">FAYDALI YÜK (LEO)</span>
+                                        <span id="mission-spec-1" class="text-lg font-extrabold text-white">4,800 kg</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-white/70 block">KALKIŞ İTKİSİ</span>
+                                        <span id="mission-spec-2" class="text-lg font-extrabold text-white">2,200 kN</span>
+                                    </div>
+                                </div>
+
+                                <button onclick="openLaunchModal()" class="w-full bg-atlasCream text-atlasBlack hover:bg-atlasBlack hover:text-atlasCream font-mono text-xs font-bold uppercase tracking-wider py-3.5 px-5 rounded-full transition-all flex items-center justify-center gap-2 shadow-lg">
+                                    <span>Bu Görevin Uçuş Simülasyonunu Başlat</span>
+                                    <span>→</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         10. FOUNDER & MECHANICAL ENGINEER MANIFESTO SECTION
+    =========================================== -->
+    <section id="founder" data-ribbon-color="#E61919" data-stage="cutaway" class="relative bg-atlasBlack text-atlasCream tech-grid-dark py-28 sm:py-36 px-4 sm:px-8 border-t border-white/15">
+        <div class="max-w-7xl mx-auto relative z-40">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <div class="lg:col-span-6 space-y-6 bg-atlasDark/90 backdrop-blur-md p-8 sm:p-10 rounded-3xl border border-white/15">
+                    <div class="inline-flex items-center gap-2 bg-atlasRed/20 border border-atlasRed text-atlasCrimson font-mono text-xs font-bold px-3.5 py-1 rounded-full">
+                        <span>KURUCU & BAŞ MAKİNA MÜHENDİSİ MANİFESTOSU</span>
+                    </div>
+
+                    <h2 class="text-4xl sm:text-6xl font-display font-extrabold tracking-tight leading-[0.95]">
+                        "Kağıt üzerindeki formülleri, yörüngeye çıkan çeliğe dönüştürüyoruz."
+                    </h2>
+
+                    <p class="text-white/75 text-base sm:text-lg leading-relaxed">
+                        ATLAS, hazır parça satın alıp birleştiren bir girişim olarak değil; termodinamik çevrimleri, akışkanlar mekaniğini, mukavemet hesaplarını ve üretim toleranslarını bizzat çizen bir <strong>makina mühendisliği kalesi</strong> olarak kuruldu.
+                    </p>
+
+                    <div class="grid grid-cols-3 gap-4 pt-4 border-t border-white/10 font-mono">
+                        <div>
+                            <span class="text-2xl sm:text-3xl font-extrabold text-atlasCrimson block">%92</span>
+                            <span class="text-[11px] text-white/60">Dikey Üretim & İç Tasarım</span>
+                        </div>
+                        <div>
+                            <span class="text-2xl sm:text-3xl font-extrabold text-white block">10x</span>
+                            <span class="text-[11px] text-white/60">Düşük Fırlatma Maliyeti</span>
+                        </div>
+                        <div>
+                            <span class="text-2xl sm:text-3xl font-extrabold text-emerald-400 block">0.005mm</span>
+                            <span class="text-[11px] text-white/60">CNC & DMLS Toleransı</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-6 flex flex-col items-start lg:items-end justify-center">
+                    <div class="bg-atlasRed text-atlasBlack p-8 sm:p-10 rounded-3xl border-2 border-white/20 max-w-lg shadow-2xl space-y-6">
+                        <div class="font-mono text-xs font-bold uppercase tracking-widest flex justify-between items-center border-b border-atlasBlack/20 pb-3">
+                            <span>MÜHENDİSLİK EKİBİ & İŞ BİRLİĞİ</span>
+                            <span>AÇIK POZİSYONLAR / AR-GE</span>
+                        </div>
+                        <h3 class="text-3xl sm:text-4xl font-display font-extrabold tracking-tight text-atlasCream">
+                            Geleceğin uzay filosunu birlikte inşa edelim.
+                        </h3>
+                        <p class="text-atlasBlack/90 font-medium text-sm sm:text-base">
+                            İtki sistemleri, kriyojenik valf tasarımı, sonlu elemanlar analizi (FEA) veya aviyonik kontrol algoritmaları üzerine çalışmak ya da projeyi incelemek için komuta merkezine bağlanın.
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="openLaunchModal()" class="bg-atlasBlack text-atlasCream hover:bg-atlasCream hover:text-atlasBlack font-mono text-xs font-bold uppercase tracking-wider px-6 py-4 rounded-full transition-all">
+                                Canlı Ateşleme Simülatörünü Aç ↗
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         11. FOOTER
+    =========================================== -->
+    <footer class="bg-atlasBlack text-atlasCream border-t border-white/10 pt-16 pb-28 px-4 sm:px-8 relative z-40">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+            <div>
+                <div class="font-display font-extrabold text-6xl sm:text-8xl tracking-tighter text-white leading-none">
+                    ATLAS<span class="text-atlasRed">.</span>
+                </div>
+                <p class="font-mono text-xs text-white/50 mt-2">
+                    © 2026 ATLAS UZAY VE İTKİ SİSTEMLERİ A.Ş. — KURUCU & BAŞ MAKİNA MÜHENDİSLİĞİ OFİSİ.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-6 font-mono text-xs uppercase tracking-wider text-white/70">
+                <a href="#hero" class="hover:text-atlasCrimson">Yukarı Çık ↑</a>
+                <a href="#cad-studio" class="hover:text-atlasCrimson">CAD Stüdyosu</a>
+                <a href="#engineering-stack" class="hover:text-atlasCrimson">Mekanik Kademeler</a>
+                <a href="#missions" class="hover:text-atlasCrimson">Görevler</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         12. INTERACTIVE STATIC FIRE & LAUNCH SIMULATION MODAL
+    =========================================== -->
+    <div id="launch-modal" class="fixed inset-0 z-50 bg-atlasBlack/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="bg-atlasDark border border-white/20 text-atlasCream rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4 mb-6">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-3 h-3 rounded-full bg-atlasCrimson animate-ping"></span>
+                    <span class="font-mono text-xs font-bold uppercase tracking-wider">ATLAS KOMUTA MERKEZİ // STATİK ATEŞLEME & TELEMETRİ TESTİ</span>
+                </div>
+                <button onclick="closeLaunchModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-atlasRed text-white flex items-center justify-center font-mono text-sm transition-colors">
+                    ✕
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-atlasBlack rounded-2xl p-5 border border-white/10 font-mono text-xs space-y-2" id="modal-console">
+                    <div class="text-white/50">&gt; ATLAS-I MOTOR TEST STANDI BAĞLANTISI KURULDU...</div>
+                    <div class="text-emerald-400">&gt; LOX / CH4 KRİYOJENİK DOLUM TAMAMLANDI (-183°C / -161°C).</div>
+                    <div class="text-amber-400">&gt; TURBO POMPA ÖN SOĞUTMA (CHILLDOWN) HAZIR.</div>
+                    <div id="modal-live-log" class="text-atlasCrimson font-bold">&gt; ATEŞLEME EMRİ BEKLENİYOR...</div>
+                </div>
+
+                <!-- Telemetry Bars -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <span class="text-[10px] text-white/50 block">ANLIK İTKİ</span>
+                        <span id="sim-thrust" class="text-2xl font-extrabold text-white">0 kN</span>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <span class="text-[10px] text-white/50 block">ODA BASINCI</span>
+                        <span id="sim-pressure" class="text-2xl font-extrabold text-atlasCrimson">0.1 MPa</span>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <span class="text-[10px] text-white/50 block">GİMBAL AÇISI</span>
+                        <span id="sim-gimbal" class="text-2xl font-extrabold text-emerald-400">0.0°</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-3 pt-2">
+                    <button onclick="runStaticFireTest()" id="btn-run-fire" class="bg-atlasRed hover:bg-atlasCrimson text-white font-mono text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all shadow-lg">
+                        🔥 Tam Güç Ateşleme Testini Başlat
+                    </button>
+                    <button onclick="closeLaunchModal()" class="border border-white/20 hover:bg-white/10 text-white font-mono text-xs uppercase tracking-wider px-5 py-3.5 rounded-full transition-all">
+                        Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT: 3D MECHANICAL ROCKET (THREE.JS),
+         DYNAMIC SCROLL RIBBON, AND CAD TELEMETRY
+    =========================================== -->
+    <script>
+        /* -----------------------------------------------------------
+           1. THREE.JS 3D MULTI-STAGE MECHANICAL ROCKET & CUTAWAY CORE
+           Replaces the 3D mouse from the video with a high-detail
+           aerospace vehicle that explodes/cuts away on scroll!
+        ------------------------------------------------------------ */
+        let scene, camera, renderer, rocketGroup;
+        let outerHullPanels = [];
+        let fairingHalves = [];
+        let internalTankGroup, engineClusterGroup, satellitePayloadGroup, landingLegs = [], gridFins = [];
+        let exhaustFlameMesh;
+
+        let renderModeOverride = 'auto'; // 'auto', 'hull', 'cutaway', 'wireframe'
+        let manualExplodeFactor = null;
+        let currentScrollRatio = 0;
+        let targetRotationY = 0;
+        let targetRotationX = 0.25;
+        let targetRotationZ = -0.45;
+        let targetExplode = 0;
+        let targetCutawayOpacity = 1;
+        let isWireframeMode = false;
+
+        function init3DRocket() {
+            const canvas = document.getElementById('rocket-3d-canvas');
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15.5);
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Lighting for metallic & mechanical contrast
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+            scene.add(ambientLight);
+
+            const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.6);
+            keyLight.position.set(8, 12, 10);
+            scene.add(keyLight);
+
+            const redRimLight = new THREE.PointLight(0xff1e1e, 2.5, 25);
+            redRimLight.position.set(-6, -5, 6);
+            scene.add(redRimLight);
+
+            const backLight = new THREE.DirectionalLight(0x90a4ae, 1.1);
+            backLight.position.set(-8, 6, -8);
+            scene.add(backLight);
+
+            // Root Rocket Assembly Group
+            rocketGroup = new THREE.Group();
+            scene.add(rocketGroup);
+
+            // Materials
+            const stainlessSteelMat = new THREE.MeshStandardMaterial({
+                color: 0xd8dce3,
+                metalness: 0.78,
+                roughness: 0.24,
+                transparent: true,
+                opacity: 1.0,
+                side: THREE.DoubleSide
+            });
+
+            const carbonBlackMat = new THREE.MeshStandardMaterial({
+                color: 0x14151a,
+                metalness: 0.5,
+                roughness: 0.4
+            });
+
+            const crimsonMat = new THREE.MeshStandardMaterial({
+                color: 0xe61919,
+                metalness: 0.4,
+                roughness: 0.3
+            });
+
+            const copperCryoMat = new THREE.MeshStandardMaterial({
+                color: 0xd97736,
+                metalness: 0.85,
+                roughness: 0.2
+            });
+
+            const goldFoilMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                metalness: 0.9,
+                roughness: 0.18
+            });
+
+            // A. OUTER HULL CYLINDER (Split into front & back shells so front can peel away for cutaway!)
+            const backHullGeo = new THREE.CylinderGeometry(0.95, 0.95, 4.4, 32, 1, false, Math.PI * 0.85, Math.PI * 1.3);
+            const backHull = new THREE.Mesh(backHullGeo, stainlessSteelMat.clone());
+            backHull.position.y = -0.4;
+            rocketGroup.add(backHull);
+
+            // Front removable cutaway hull panel
+            const frontHullGeo = new THREE.CylinderGeometry(0.96, 0.96, 4.4, 32, 8, true, -Math.PI * 0.15, Math.PI * 1.0);
+            const frontHullPanel = new THREE.Mesh(frontHullGeo, stainlessSteelMat.clone());
+            frontHullPanel.position.y = -0.4;
+            rocketGroup.add(frontHullPanel);
+            outerHullPanels.push(frontHullPanel);
+
+            // Black Interstage Ring with Red Stripe
+            const interstageGeo = new THREE.CylinderGeometry(0.97, 0.97, 0.55, 32);
+            const interstageMesh = new THREE.Mesh(interstageGeo, carbonBlackMat);
+            interstageMesh.position.y = 1.85;
+            rocketGroup.add(interstageMesh);
+
+            const redRingGeo = new THREE.CylinderGeometry(0.98, 0.98, 0.12, 32);
+            const redRingMesh = new THREE.Mesh(redRingGeo, crimsonMat);
+            redRingMesh.position.y = 1.5;
+            rocketGroup.add(redRingMesh);
+
+            // B. INTERNAL CRYOGENIC TANKS & TURBOPUMP PLUMBING (Visible when cutaway is active!)
+            internalTankGroup = new THREE.Group();
+
+            // LOX Upper Tank (Copper/Gold dome)
+            const loxTankGeo = new THREE.CylinderGeometry(0.76, 0.76, 1.55, 24);
+            const loxTank = new THREE.Mesh(loxTankGeo, copperCryoMat);
+            loxTank.position.y = 0.65;
+            internalTankGroup.add(loxTank);
+
+            const loxDomeGeo = new THREE.SphereGeometry(0.76, 24, 16);
+            const loxDome = new THREE.Mesh(loxDomeGeo, copperCryoMat);
+            loxDome.position.y = 1.4;
+            loxDome.scale.y = 0.5;
+            internalTankGroup.add(loxDome);
+
+            // CH4 (Methane) Lower Tank
+            const ch4TankGeo = new THREE.CylinderGeometry(0.76, 0.76, 1.55, 24);
+            const ch4Tank = new THREE.Mesh(ch4TankGeo, crimsonMat);
+            ch4Tank.position.y = -1.35;
+            internalTankGroup.add(ch4Tank);
+
+            // Central Downcomer Feed Pipe & Structural Baffles
+            const pipeGeo = new THREE.CylinderGeometry(0.14, 0.14, 4.2, 16);
+            const pipeMesh = new THREE.Mesh(pipeGeo, goldFoilMat);
+            pipeMesh.position.y = -0.4;
+            internalTankGroup.add(pipeMesh);
+
+            // Internal Structural Rings (Isogrid Ribs)
+            for (let i = -2.2; i <= 1.4; i += 0.6) {
+                const ribGeo = new THREE.TorusGeometry(0.86, 0.035, 8, 28);
+                const rib = new THREE.Mesh(ribGeo, carbonBlackMat);
+                rib.rotation.x = Math.PI / 2;
+                rib.position.y = i;
+                internalTankGroup.add(rib);
+            }
+
+            rocketGroup.add(internalTankGroup);
+
+            // C. SPLIT PAYLOAD FAIRING (2 Halves that open outward!) + SATELLITE STACK
+            for (let side = -1; side <= 1; side += 2) {
+                const fairingHalfGroup = new THREE.Group();
+                const startAngle = side === -1 ? Math.PI * 0.5 : -Math.PI * 0.5;
+
+                const fairingCylGeo = new THREE.CylinderGeometry(0.95, 0.95, 1.2, 24, 1, false, startAngle, Math.PI);
+                const fairingCyl = new THREE.Mesh(fairingCylGeo, stainlessSteelMat.clone());
+                fairingCyl.position.y = 2.7;
+                fairingHalfGroup.add(fairingCyl);
+
+                const noseConeGeo = new THREE.ConeGeometry(0.95, 1.65, 24, 1, false, startAngle, Math.PI);
+                const noseCone = new THREE.Mesh(noseConeGeo, crimsonMat);
+                noseCone.position.y = 4.12;
+                fairingHalfGroup.add(noseCone);
+
+                fairingHalfGroup.userData = { side: side };
+                rocketGroup.add(fairingHalfGroup);
+                fairingHalves.push(fairingHalfGroup);
+            }
+
+            // Internal Satellite Stack ("KALKAN-SAT") inside the fairing
+            satellitePayloadGroup = new THREE.Group();
+            const satCoreGeo = new THREE.BoxGeometry(0.75, 1.35, 0.75);
+            const satCore = new THREE.Mesh(satCoreGeo, goldFoilMat);
+            satCore.position.y = 2.95;
+            satellitePayloadGroup.add(satCore);
+
+            // Solar Wing Panels on Satellite
+            const wingGeo = new THREE.BoxGeometry(1.7, 0.9, 0.04);
+            const wingMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.8, roughness: 0.2 });
+            const wings = new THREE.Mesh(wingGeo, wingMat);
+            wings.position.y = 2.95;
+            satellitePayloadGroup.add(wings);
+
+            rocketGroup.add(satellitePayloadGroup);
+
+            // D. 9-ENGINE METHALOX CLUSTER & GIMBAL BELLS AT BOTTOM
+            engineClusterGroup = new THREE.Group();
+            engineClusterGroup.position.y = -2.85;
+
+            // Thrust Puck Manifold
+            const puckGeo = new THREE.CylinderGeometry(0.92, 0.82, 0.35, 24);
+            const puckMesh = new THREE.Mesh(puckGeo, carbonBlackMat);
+            engineClusterGroup.add(puckMesh);
+
+            // Center Gimbal Engine + 8 Outer Ring Engines
+            const nozzleBellGeo = new THREE.ConeGeometry(0.24, 0.65, 16, 1, true);
+            const nozzleMat = new THREE.MeshStandardMaterial({
+                color: 0x27272a,
+                metalness: 0.85,
+                roughness: 0.25,
+                side: THREE.DoubleSide
+            });
+
+            const centerNozzle = new THREE.Mesh(nozzleBellGeo, crimsonMat);
+            centerNozzle.position.y = -0.4;
+            engineClusterGroup.add(centerNozzle);
+
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const noz = new THREE.Mesh(nozzleBellGeo, nozzleMat);
+                noz.position.set(Math.cos(angle) * 0.58, -0.35, Math.sin(angle) * 0.58);
+                engineClusterGroup.add(noz);
+            }
+
+            // Glowing Plasma Exhaust Plume Cone
+            const flameGeo = new THREE.ConeGeometry(0.68, 2.2, 20, 1, true);
+            const flameMat = new THREE.MeshBasicMaterial({
+                color: 0xff2a2a,
+                transparent: true,
+                opacity: 0.65,
+                wireframe: true
+            });
+            exhaustFlameMesh = new THREE.Mesh(flameGeo, flameMat);
+            exhaustFlameMesh.rotation.x = Math.PI;
+            exhaustFlameMesh.position.y = -1.75;
+            engineClusterGroup.add(exhaustFlameMesh);
+
+            rocketGroup.add(engineClusterGroup);
+
+            // E. 4 HYPERSONIC TITANIUM GRID FINS (Near Interstage)
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+                const finGeo = new THREE.BoxGeometry(0.45, 0.35, 0.06);
+                const fin = new THREE.Mesh(finGeo, carbonBlackMat);
+                fin.position.set(Math.cos(angle) * 1.12, 1.5, Math.sin(angle) * 1.12);
+                fin.rotation.y = -angle;
+                rocketGroup.add(fin);
+                gridFins.push(fin);
+            }
+
+            // F. 4 DEPLOYABLE TELESCOPIC LANDING LEGS (Near Bottom)
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2;
+                const legPivot = new THREE.Group();
+                legPivot.position.set(Math.cos(angle) * 0.9, -2.55, Math.sin(angle) * 0.9);
+                legPivot.rotation.y = -angle;
+
+                const legStrutGeo = new THREE.BoxGeometry(0.12, 1.45, 0.18);
+                const legMesh = new THREE.Mesh(legStrutGeo, carbonBlackMat);
+                legMesh.position.set(0.25, -0.45, 0);
+                legMesh.rotation.z = -0.35;
+                legPivot.add(legMesh);
+
+                rocketGroup.add(legPivot);
+                landingLegs.push(legPivot);
+            }
+
+            // Initial sleek diagonal angle matching the 3D mouse angle in the SLICK video
+            rocketGroup.rotation.set(0.25, 0.4, -0.58);
+        }
+
+        /* -----------------------------------------------------------
+           2. SCROLL-DRIVEN RIBBON & 3D ROCKET KINEMATICS
+        ------------------------------------------------------------ */
+        function updateScrollEffects() {
+            const scrollTop = window.scrollY;
+            const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+            currentScrollRatio = Math.min(1, Math.max(0, scrollTop / maxScroll));
+
+            // Update HUD altitude readout
+            const altitudeKm = Math.round(currentScrollRatio * 550);
+            const hudAlt = document.getElementById('hud-scroll-telemetry');
+            if (hudAlt) {
+                hudAlt.textContent = `ALT: ${String(altitudeKm).padStart(3, '0')} KM`;
+            }
+
+            // Determine active section for Ribbon Color & Rocket Stage
+            const sections = document.querySelectorAll('section[data-ribbon-color]');
+            let activeRibbonColor = '#0B0B0D';
+            let activeStage = 'hull';
+
+            sections.forEach(sec => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top <= window.innerHeight * 0.5 && rect.bottom >= window.innerHeight * 0.3) {
+                    activeRibbonColor = sec.getAttribute('data-ribbon-color') || '#E61919';
+                    activeStage = sec.getAttribute('data-stage') || 'hull';
+                }
+            });
+
+            // Apply dynamic ribbon stroke color
+            const mainRibbon = document.getElementById('ribbon-path-main');
+            if (mainRibbon) {
+                mainRibbon.setAttribute('stroke', activeRibbonColor);
+            }
+
+            // Draw Dynamic Swirling SVG Ribbon Path that snakes across the screen as you scroll
+            const phase = currentScrollRatio * Math.PI * 4;
+            const sway1 = Math.sin(phase) * 240;
+            const sway2 = Math.cos(phase * 0.85) * 290;
+            const sway3 = Math.sin(phase * 1.3) * 180;
+
+            const dPath = `
+                M ${560 + sway1 * 0.5} -80
+                C ${320 - sway2} 220, ${1020 + sway1} 390, ${720 + sway3 * 0.4} 460
+                C ${420 - sway1} 530, ${980 + sway2} 720, ${740 - sway3} 980
+            `;
+
+            const shadowPath = document.getElementById('ribbon-path-shadow');
+            const centerPath = document.getElementById('ribbon-path-center');
+            if (mainRibbon && shadowPath && centerPath) {
+                mainRibbon.setAttribute('d', dPath);
+                shadowPath.setAttribute('d', dPath);
+                centerPath.setAttribute('d', dPath);
+            }
+
+            // Determine Rocket Configuration based on mode (Auto Scroll vs Manual Override)
+            const effectiveMode = renderModeOverride === 'auto' ? activeStage : renderModeOverride;
+            const stageLabel = document.getElementById('hud-stage-label');
+
+            if (effectiveMode === 'hull') {
+                targetCutawayOpacity = 1.0;
+                targetExplode = 0.05;
+                isWireframeMode = false;
+                if (stageLabel) stageLabel.textContent = 'MOD: TAM DIŞ GÖVDE';
+            } else if (effectiveMode === 'cutaway') {
+                targetCutawayOpacity = 0.08;
+                targetExplode = 0.55;
+                isWireframeMode = false;
+                if (stageLabel) stageLabel.textContent = 'MOD: İÇ MEKANİK KESİT';
+            } else if (effectiveMode === 'wireframe') {
+                targetCutawayOpacity = 0.35;
+                targetExplode = 0.35;
+                isWireframeMode = true;
+                if (stageLabel) stageLabel.textContent = 'MOD: CAD TEL KAFES';
+            } else if (effectiveMode === 'payload') {
+                targetCutawayOpacity = 0.25;
+                targetExplode = 0.95;
+                isWireframeMode = false;
+                if (stageLabel) stageLabel.textContent = 'MOD: UYDU AÇILIMI';
+            } else if (effectiveMode === 'landing') {
+                targetCutawayOpacity = 0.85;
+                targetExplode = 0.25;
+                isWireframeMode = false;
+                if (stageLabel) stageLabel.textContent = 'MOD: DİKEY İNİŞ KONFİGÜRASYONU';
+            }
+
+            if (manualExplodeFactor !== null) {
+                targetExplode = manualExplodeFactor;
+            }
+
+            // Smoothly rotate rocket angle along scroll trajectory
+            targetRotationY = currentScrollRatio * Math.PI * 3.2 + 0.4;
+            targetRotationZ = -0.55 + Math.sin(currentScrollRatio * Math.PI * 2) * 0.45;
+            targetRotationX = 0.22 + Math.cos(currentScrollRatio * Math.PI * 2) * 0.18;
+        }
+
+        // Manual HUD Button Switcher
+        function setRocketRenderMode(mode) {
+            renderModeOverride = mode;
+            manualExplodeFactor = null;
+            const modes = ['auto', 'hull', 'cutaway', 'wireframe'];
+            modes.forEach(m => {
+                const btn = document.getElementById(`btn-mode-${m}`);
+                if (!btn) return;
+                if (m === mode) {
+                    btn.className = "px-2.5 py-1 rounded-full font-mono text-[11px] uppercase tracking-wider bg-atlasRed text-white font-bold transition-all";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-full font-mono text-[11px] uppercase tracking-wider text-white/70 hover:text-white hover:bg-white/10 transition-all";
+                }
+            });
+            updateScrollEffects();
+        }
+
+        // Manual Exploded View Slider in CAD section
+        function updateManualExplode(val) {
+            manualExplodeFactor = parseFloat(val) / 100;
+            const lbl = document.getElementById('explode-val-label');
+            if (lbl) lbl.textContent = `${val}% AÇIK`;
+            targetCutawayOpacity = val > 25 ? 0.12 : 0.95;
+        }
+
+        /* -----------------------------------------------------------
+           3. ANIMATION LOOP FOR 3D ROCKET & MECHANICAL PARTS
+        ------------------------------------------------------------ */
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+
+            if (rocketGroup) {
+                // Smooth damping toward scroll targets
+                rocketGroup.rotation.y += (targetRotationY - rocketGroup.rotation.y) * 0.07 + 0.004;
+                rocketGroup.rotation.x += (targetRotationX - rocketGroup.rotation.x) * 0.07;
+                rocketGroup.rotation.z += (targetRotationZ - rocketGroup.rotation.z) * 0.07;
+
+                // Subtle floating hover motion
+                const time = performance.now() * 0.0015;
+                rocketGroup.position.y = Math.sin(time) * 0.18;
+
+                // Animate Removable Front Hull Cutaway Panel
+                outerHullPanels.forEach(panel => {
+                    panel.material.opacity += (targetCutawayOpacity - panel.material.opacity) * 0.1;
+                    panel.material.wireframe = isWireframeMode;
+                    panel.position.z += ((1 - targetCutawayOpacity) * 0.9 - panel.position.z) * 0.1;
+                });
+
+                // Animate Payload Fairing Halves Opening (Clamshell Kinematics)
+                fairingHalves.forEach(half => {
+                    const side = half.userData.side;
+                    const targetX = side * targetExplode * 1.15;
+                    const targetRotZ = -side * targetExplode * 0.32;
+                    half.position.x += (targetX - half.position.x) * 0.08;
+                    half.position.y += (targetExplode * 0.55 - half.position.y) * 0.08;
+                    half.rotation.z += (targetRotZ - half.rotation.z) * 0.08;
+                    half.children.forEach(mesh => {
+                        mesh.material.wireframe = isWireframeMode;
+                    });
+                });
+
+                // Animate Engine Cluster Separation (Exploded View)
+                if (engineClusterGroup) {
+                    const targetEngineY = -2.85 - targetExplode * 0.85;
+                    engineClusterGroup.position.y += (targetEngineY - engineClusterGroup.position.y) * 0.08;
+                }
+
+                // Animate Satellite Stack Rising
+                if (satellitePayloadGroup) {
+                    satellitePayloadGroup.rotation.y = time * 0.8;
+                }
+
+                // Animate Telescopic Landing Legs Deployment
+                landingLegs.forEach((leg, idx) => {
+                    const deployAngle = targetExplode * 0.65;
+                    leg.rotation.z += (deployAngle - leg.rotation.z) * 0.08;
+                });
+
+                // Pulse Exhaust Plume
+                if (exhaustFlameMesh) {
+                    exhaustFlameMesh.scale.y = 0.85 + Math.sin(time * 12) * 0.22;
+                    exhaustFlameMesh.rotation.y += 0.08;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        /* -----------------------------------------------------------
+           4. INTERACTIVE CAD & TELEMETRY STUDIO LOGIC
+        ------------------------------------------------------------ */
+        const subsystemsData = [
+            {
+                id: "ÇİZİM NO: ATL-ENG-001",
+                title: "KAPALI ÇEVRİM METHALOX TURBO POMPA",
+                desc: "Sıvı metan (CH4) ve sıvı oksijen (LOX) ön-yakıcıdan geçerek kayıpsız kapalı çevrim itki üretir. Inconel-718 monoblok türbin çarkı 38.400 RPM'de çalışır.",
+                mode: "cutaway"
+            },
+            {
+                id: "ÇİZİM NO: ATL-TVC-002",
+                title: "ÇİFT EKSENLİ HİDROLİK GİMBAL AKTÜATÖRÜ",
+                desc: "Motor çanını saniyede 45 derece hızla ±15° yönlendiren yüksek basınçlı elektro-hidrolik servo aktüatörler. Dikey iniş esnasında milimetrik denge sağlar.",
+                mode: "landing"
+            },
+            {
+                id: "ÇİZİM NO: ATL-CRYO-003",
+                title: "ORTOGRİD PASLANMAZ ÇELİK KRİYOJENİK TANK",
+                desc: "İç yüzeyinde işlenmiş üçgen izogrid kaburgalar sayesinde burkulma mukavemeti %340 artırılmış, 4mm et kalınlığında ultra hafif yakıt tankı.",
+                mode: "wireframe"
+            }
+        ];
+
+        function selectSubsystem(index) {
+            const data = subsystemsData[index];
+            document.getElementById('cad-drawing-id').textContent = data.id;
+            document.getElementById('cad-subsystem-title').textContent = data.title;
+            document.getElementById('cad-subsystem-desc').textContent = data.desc;
+
+            // Update button active styles
+            for (let i = 0; i < 3; i++) {
+                const btn = document.getElementById(`sub-btn-${i}`);
+                if (i === index) {
+                    btn.className = "subsystem-btn text-left p-3 rounded-2xl border-2 border-atlasRed bg-atlasBlack text-atlasCream transition-all";
+                } else {
+                    btn.className = "subsystem-btn text-left p-3 rounded-2xl border-2 border-atlasBlack/15 bg-white hover:border-atlasRed transition-all";
+                }
+            }
+
+            // Switch 3D rocket view to highlight the chosen subsystem
+            setRocketRenderMode(data.mode);
+        }
+
+        function updateEngineTelemetry(pressureVal) {
+            const p = parseFloat(pressureVal);
+            document.getElementById('val-pressure').textContent = `${p.toFixed(1)} MPa`;
+
+            const rpm = Math.round(18000 + p * 625);
+            const thrust = Math.round(p * 75.4);
+            const isp = Math.round(335 + p * 1.45);
+            const temp = Math.round(2850 + p * 17.5);
+
+            document.getElementById('val-rpm').textContent = `${rpm.toLocaleString('tr-TR')} RPM`;
+            document.getElementById('val-thrust').textContent = `${thrust.toLocaleString('tr-TR')} kN`;
+            document.getElementById('val-isp').textContent = `${isp} sn`;
+            document.getElementById('val-temp').textContent = `${temp.toLocaleString('tr-TR')} K`;
+
+            // Scale exhaust plume in SVG schematic
+            const plume = document.getElementById('svg-plume');
+            if (plume) {
+                const len = 290 + (p - 15) * 2.5;
+                plume.setAttribute('points', `235,148 ${len},120 ${len - 20},160 ${len + 10},178 235,172`);
+            }
+        }
+
+        /* -----------------------------------------------------------
+           5. SELECTED MISSIONS PORTFOLIO SWITCHER
+        ------------------------------------------------------------ */
+        const missionsData = [
+            {
+                badge: "GÖREV KODU: ATL-01",
+                orbit: "HEDEF: 550 KM GÜNEŞ EŞZAMANLI YÖRÜNGE (SSO)",
+                status: "DURUM: ENTEGRASYON",
+                posterTitle: "ATLAS-I",
+                posterSub: "İKİ KADEMELİ YENİDEN KULLANILABİLİR ROKET",
+                heading: "ATLAS-I Yörünge Test Aracı",
+                desc: "Tamamen makina mühendisliği ilkeleriyle sıfırdan tasarlanan 42 metre boyundaki iki kademeli fırlatma aracımız. İlk kademede 9 adet AT-9 Methalox motoru ile kalkışta 2.2 Meganewton itki üretir ve otonom mavnaya dikey iniş yapar.",
+                spec1: "4,800 kg",
+                spec2: "2,200 kN",
+                bgClass: "bg-atlasRed text-atlasCream"
+            },
+            {
+                badge: "GÖREV KODU: KLK-SAT",
+                orbit: "HEDEF: 36 ADET LEO LAZER HABERLEŞME UYDUSU",
+                status: "DURUM: YÖRÜNGE TESTİ",
+                posterTitle: "KALKAN-SAT",
+                posterSub: "DÜZ-PAKET İYON İTKİLİ UYDU TAKIMI",
+                heading: "KALKAN-SAT Küresel İletişim Ağı",
+                desc: "Kripton gazlı Hall-Effect iyon motorları ve otonom katlanır güneş panelleriyle donatılmış mikro uydu serisi. Uydular arası optik lazer bağlantısı ile gecikmesiz küresel veri aktarımı sağlar.",
+                spec1: "36 Uydu / Uçuş",
+                spec2: "12 Gbps Lazer",
+                bgClass: "bg-atlasBlack text-atlasCream"
+            },
+            {
+                badge: "GÖREV KODU: DMR-HVY",
+                orbit: "HEDEF: AĞIR YÜK & DERİN UZAY TRANSFERİ",
+                status: "DURUM: MOTOR ATEŞLEME",
+                posterTitle: "DEMİRÖKÇE",
+                posterSub: "TAM YENİDEN KULLANILABİLİR SÜPER AĞIR ROKET",
+                heading: "DEMİRÖKÇE Ağır Yük Taşıyıcı",
+                desc: "9 metre çapında paslanmaz çelik gövde ve 27 adet kapalı çevrim AT-9 motoru. Fırlatma kulesindeki mekanik yakalama kolları (Mechazilla prensibi) ile hem ilk hem ikinci kademeyi havada yakalar.",
+                spec1: "65,000 kg",
+                spec2: "18,500 kN",
+                bgClass: "bg-atlasRed text-atlasCream"
+            },
+            {
+                badge: "GÖREV KODU: SLN-LNR",
+                orbit: "HEDEF: AY KUTUP KRATERİ YÜZEY İNİŞİ",
+                status: "DURUM: AR-GE & CAD",
+                posterTitle: "SELENE-L1",
+                posterSub: "OTONOM AY YÜZEY LOJİSTİK MODÜLÜ",
+                heading: "SELENE Ay Lojistik İniş Aracı",
+                desc: "Düşük yerçekimli ve engebeli krater zeminlerine güvenli iniş için aktif lazer LiDAR tarayıcılar ve kendinden dengelemeli 6-eksenli hidrolik Stewart platformu iniş ayaklarıyla donatılmış kargo modülü.",
+                spec1: "8,200 kg Ay'a",
+                spec2: "4x Derin Kısma",
+                bgClass: "bg-atlasBlack text-atlasCream"
+            }
+        ];
+
+        function selectMission(idx) {
+            const m = missionsData[idx];
+            document.getElementById('mission-badge').textContent = m.badge;
+            document.getElementById('mission-orbit').textContent = m.orbit;
+            document.getElementById('mission-status').textContent = m.status;
+            document.getElementById('mission-poster-title').textContent = m.posterTitle;
+            document.getElementById('mission-poster-sub').textContent = m.posterSub;
+            document.getElementById('mission-main-heading').textContent = m.heading;
+            document.getElementById('mission-desc').textContent = m.desc;
+            document.getElementById('mission-spec-1').textContent = m.spec1;
+            document.getElementById('mission-spec-2').textContent = m.spec2;
+
+            // Update active button state in mission list
+            const buttons = document.querySelectorAll('#mission-list .mission-item');
+            buttons.forEach((btn, i) => {
+                if (i === idx) {
+                    btn.className = "mission-item w-full py-4 px-3 flex items-center justify-between text-left group rounded-xl bg-atlasBlack text-atlasCream transition-all";
+                } else {
+                    btn.className = "mission-item w-full py-4 px-3 flex items-center justify-between text-left group rounded-xl hover:bg-atlasBlack/5 transition-all";
+                }
+            });
+        }
+
+        /* -----------------------------------------------------------
+           6. STATIC FIRE & LAUNCH SIMULATION MODAL
+        ------------------------------------------------------------ */
+        let simInterval = null;
+
+        function openLaunchModal() {
+            const modal = document.getElementById('launch-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeLaunchModal() {
+            const modal = document.getElementById('launch-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (simInterval) clearInterval(simInterval);
+        }
+
+        function runStaticFireTest() {
+            if (simInterval) clearInterval(simInterval);
+            const logEl = document.getElementById('modal-live-log');
+            const thrustEl = document.getElementById('sim-thrust');
+            const pressEl = document.getElementById('sim-pressure');
+            const gimbalEl = document.getElementById('sim-gimbal');
+
+            let step = 0;
+            logEl.textContent = "> T-00:00 ATEŞLEME BAŞLADI! ÖN-YAKICI DEVREDE...";
+            setRocketRenderMode('cutaway');
+
+            simInterval = setInterval(() => {
+                step++;
+                const progress = Math.min(1, step / 25);
+                const curThrust = Math.round(progress * 2450 + (Math.random() * 40 - 20));
+                const curPress = (progress * 32.8 + (Math.random() * 0.4 - 0.2)).toFixed(1);
+                const curGimbal = (Math.sin(step * 0.5) * 6.5).toFixed(1);
+
+                thrustEl.textContent = `${Math.max(0, curThrust)} kN`;
+                pressEl.textContent = `${curPress} MPa`;
+                gimbalEl.textContent = `${curGimbal}°`;
+
+                if (step === 12) {
+                    logEl.textContent = "> TAM İTKİ REJİMİNE ULAŞILDI! GİMBAL VEKTÖR TESTİ YAPILIYOR...";
+                }
+                if (step >= 35) {
+                    clearInterval(simInterval);
+                    logEl.textContent = "> ✔ STATİK ATEŞLEME BAŞARIYLA TAMAMLANDI. TÜM MEKANİK DEĞERLER NOMİNAL.";
+                }
+            }, 120);
+        }
+
+        /* -----------------------------------------------------------
+           7. LIVE MISSION CLOCK & WINDOW EVENTS
+        ------------------------------------------------------------ */
+        function startMissionClock() {
+            let seconds = 892;
+            const clockEl = document.getElementById('nav-mission-clock');
+            setInterval(() => {
+                seconds += 0.1;
+                const mins = Math.floor(seconds / 60);
+                const secs = (seconds % 60).toFixed(2).padStart(5, '0');
+                if (clockEl) {
+                    clockEl.textContent = `T+ 00:${String(mins).padStart(2, '0')}:${secs}`;
+                }
+            }, 100);
+        }
+
+        window.addEventListener('scroll', updateScrollEffects, { passive: true });
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            updateScrollEffects();
+        });
+
+        window.onload = function () {
+            init3DRocket();
+            updateScrollEffects();
+            animate3D();
+            startMissionClock();
+        };
+    </script>
+</body>
+</html>
